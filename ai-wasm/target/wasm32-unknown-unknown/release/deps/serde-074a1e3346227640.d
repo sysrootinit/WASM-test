@@ -1,0 +1,14 @@
+/Users/dark34611/spacegame/ai-wasm/target/wasm32-unknown-unknown/release/deps/serde-074a1e3346227640.d: /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/dark34611/spacegame/ai-wasm/target/wasm32-unknown-unknown/release/build/serde-8d8ca2d666b95194/out/private.rs
+
+/Users/dark34611/spacegame/ai-wasm/target/wasm32-unknown-unknown/release/deps/libserde-074a1e3346227640.rlib: /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/dark34611/spacegame/ai-wasm/target/wasm32-unknown-unknown/release/build/serde-8d8ca2d666b95194/out/private.rs
+
+/Users/dark34611/spacegame/ai-wasm/target/wasm32-unknown-unknown/release/deps/libserde-074a1e3346227640.rmeta: /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/dark34611/spacegame/ai-wasm/target/wasm32-unknown-unknown/release/build/serde-8d8ca2d666b95194/out/private.rs
+
+/Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/dark34611/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/dark34611/spacegame/ai-wasm/target/wasm32-unknown-unknown/release/build/serde-8d8ca2d666b95194/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/dark34611/spacegame/ai-wasm/target/wasm32-unknown-unknown/release/build/serde-8d8ca2d666b95194/out

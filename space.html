@@ -1,0 +1,1353 @@
+<!-- /Users/dark34611/space.html -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quark Fleet - 夸克艦隊</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+            background: radial-gradient(ellipse at center, #0a0e27 0%, #000 100%);
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #0ff;
+            font-size: 18px;
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+            z-index: 10;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(0, 100, 255, 0.15));
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        #ui>div {
+            margin: 8px 0;
+            padding: 5px;
+            border-left: 3px solid #0ff;
+            padding-left: 10px;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(0, 100, 255, 0.15));
+            padding: 20px 30px;
+            border-radius: 15px;
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .control-item {
+            margin: 8px 0;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .control-item:hover {
+            text-shadow: 0 0 15px #0ff;
+            transform: translateX(5px);
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #f00;
+            font-size: 48px;
+            text-align: center;
+            display: none;
+            text-shadow: 0 0 20px #f00, 0 0 40px #f00;
+            padding: 40px 60px;
+        }
+
+        .glow {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+            }
+
+            50% {
+                opacity: 0.7;
+                text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+            }
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="ui">
+        <div>能量: <span id="energy" class="glow">100</span></div>
+        <div>分數: <span id="score">0</span></div>
+        <div>波數: <span id="wave">1</span></div>
+        <div>連擊: <span id="combo" class="glow">0</span>x</div>
+        <div>最高連擊: <span id="maxCombo">0</span>x</div>
+    </div>
+
+    <div id="controls">
+        <div class="control-item">🎮 滑鼠移動 - 控制主艦</div>
+        <div class="control-item">⚡ 左鍵 - 發射能量波</div>
+        <div class="control-item">🔄 右鍵 - 分裂/合併飛船</div>
+        <div class="control-item">🌀 空白鍵 - 重力場護盾</div>
+        <div class="control-item">💥 Q鍵 - 超新星爆炸</div>
+    </div>
+
+    <div id="gameOver">
+        <div>遊戲結束</div>
+        <div style="font-size: 24px; margin-top: 20px;">最終分數: <span id="finalScore">0</span></div>
+        <div style="font-size: 18px; margin-top: 10px; color: #0ff;">按 R 重新開始</div>
+    </div>
+
+    <div id="zombieUnlock"
+        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; text-align: center;">
+        <div style="font-size: 64px; color: #0f0; text-shadow: 0 0 30px #0f0; animation: pulse 1s infinite;">🧟</div>
+        <div style="font-size: 36px; color: #0f0; margin-top: 20px; text-shadow: 0 0 20px #0f0;">你獲得了殭屍模式！</div>
+        <div style="font-size: 18px; color: #fff; margin-top: 15px;">被擊殺的敵人會轉化為友軍幫助你戰鬥</div>
+        <div style="font-size: 16px; color: #0ff; margin-top: 10px;">按任意鍵繼續...</div>
+    </div>
+
+    <div id="devModePanel"
+        style="position: absolute; top: 80px; right: 20px; display: none; background: linear-gradient(135deg, rgba(255, 0, 255, 0.2), rgba(255, 100, 0, 0.2)); padding: 20px; border-radius: 15px; border: 2px solid rgba(255, 0, 255, 0.6); backdrop-filter: blur(15px); box-shadow: 0 0 30px rgba(255, 0, 255, 0.4); color: #f0f; font-family: 'Courier New', monospace;">
+        <div style="font-size: 20px; font-weight: bold; margin-bottom: 15px; text-shadow: 0 0 10px #f0f;">⚙️ DEV MODE
+        </div>
+        <button id="devAddEnergy"
+            style="display: block; width: 100%; margin: 5px 0; padding: 8px; background: rgba(0, 255, 0, 0.2); border: 1px solid #0f0; color: #0f0; cursor: pointer; border-radius: 5px;">+1000
+            能量</button>
+        <button id="devMaxModules"
+            style="display: block; width: 100%; margin: 5px 0; padding: 8px; background: rgba(160, 0, 255, 0.2); border: 1px solid #a0f; color: #a0f; cursor: pointer; border-radius: 5px;">最大模組數</button>
+        <button id="devKillAll"
+            style="display: block; width: 100%; margin: 5px 0; padding: 8px; background: rgba(255, 0, 0, 0.2); border: 1px solid #f00; color: #f00; cursor: pointer; border-radius: 5px;">清除全敵</button>
+        <button id="devSetRammerKills"
+            style="display: block; width: 100%; margin: 5px 0; padding: 8px; background: rgba(255, 165, 0, 0.2); border: 1px solid #fa0; color: #fa0; cursor: pointer; border-radius: 5px;">Rammer擊殺+18</button>
+        <button id="devUnlockZombie"
+            style="display: block; width: 100%; margin: 5px 0; padding: 8px; background: rgba(0, 255, 0, 0.2); border: 1px solid #0f0; color: #0f0; cursor: pointer; border-radius: 5px;">解鎖殭屍模式</button>
+        <button id="devNextWave"
+            style="display: block; width: 100%; margin: 5px 0; padding: 8px; background: rgba(0, 255, 255, 0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 5px;">跳到下一波</button>
+
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 0, 255, 0.3);">
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #ff0;">🧬 生成生物</div>
+            <select id="devSpawnType"
+                style="display: block; width: 100%; margin: 5px 0; padding: 8px; background: rgba(0, 0, 0, 0.5); border: 1px solid #f0f; color: #f0f; cursor: pointer; border-radius: 5px; font-family: 'Courier New', monospace;">
+                <option value="basic">基礎敵人 (紅三角)</option>
+                <option value="elite">精英敵人 (紫六角)</option>
+                <option value="rammer">衝撞者 (橘菱形)</option>
+                <option value="rammer-stealth">隱形衝撞者</option>
+                <option value="exploder">自爆者 (白十角)</option>
+            </select>
+
+            <div style="margin: 8px 0;">
+                <label style="display: block; margin: 5px 0; font-size: 12px;">
+                    <input type="checkbox" id="devSpawnAsZombie" style="margin-right: 5px;">
+                    <span style="color: #0f0;">生成為殭屍</span>
+                </label>
+            </div>
+
+            <button id="devSpawnEnemy"
+                style="display: block; width: 100%; margin: 5px 0; padding: 8px; background: rgba(255, 255, 0, 0.2); border: 1px solid #ff0; color: #ff0; cursor: pointer; border-radius: 5px; font-weight: bold;">✨
+                在玩家位置生成</button>
+        </div>
+
+        <div style="margin-top: 10px; font-size: 12px; color: #f80;">
+            <div>Rammer擊殺: <span id="devRammerCount">0</span></div>
+            <div style="margin-top: 5px; color: #0ff;">FPS: <span id="devFPS">60</span></div>
+            <div style="margin-top: 5px; color: #0f0;">殭屍模式: <span id="devZombieStatus">❌ 未解鎖</span></div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- External modules -->
+    <script src="gameAI.js"></script>
+    <script src="devMode.js"></script>
+    <script src="shipSystem.js"></script>
+    <script src="spaceEffects.js"></script>
+    <script src="powerups.js"></script>
+    <script src="gridWasm.js"></script>
+    <script src="aiWasm.js"></script>
+    <script src="particleWasm.js"></script>
+
+    <script type="module">
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // ===== Sprite cache (pre-rendered offscreen canvases) =====
+        function createSpriteCanvas(w, h) {
+            if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(w, h);
+            const c = document.createElement('canvas'); c.width = w; c.height = h; return c;
+        }
+        function makeGlowSprite(radius, innerColor, outerColor, ringColor = null, ringWidth = 0) {
+            const size = radius * 4; // generous bleed for blur
+            const c = createSpriteCanvas(size, size);
+            const g = c.getContext('2d');
+            const cx = size / 2, cy = size / 2;
+            // core glow (use provided innerColor)
+            const grad = g.createRadialGradient(cx, cy, 0, cx, cy, radius);
+            grad.addColorStop(0, innerColor);
+            grad.addColorStop(1, outerColor);
+            g.fillStyle = grad;
+            g.shadowBlur = Math.max(6, radius * 1.2);
+            g.shadowColor = outerColor;
+            g.beginPath();
+            g.arc(cx, cy, radius, 0, Math.PI * 2);
+            g.fill();
+            // optional ring (subtle)
+            if (ringColor && ringWidth > 0) {
+                g.shadowBlur = 0;
+                g.strokeStyle = ringColor;
+                g.lineWidth = ringWidth;
+                g.beginPath();
+                g.arc(cx, cy, radius + ringWidth * 0.5, 0, Math.PI * 2);
+                g.stroke();
+            }
+            return c;
+        }
+        function makeStarSprite(radius, color) {
+            const size = radius * 4;
+            const c = createSpriteCanvas(size, size);
+            const g = c.getContext('2d');
+            const cx = size / 2, cy = size / 2;
+            g.fillStyle = color;
+            g.shadowBlur = Math.max(6, radius * 2);
+            g.shadowColor = color;
+            g.globalAlpha = 0.9;
+            g.beginPath();
+            g.arc(cx, cy, radius, 0, Math.PI * 2);
+            g.fill();
+            return c;
+        }
+
+        // Module core glow sprite (matches current procedural look)
+        function makeModuleCoreSprite(baseRadius) {
+            // include room for shadow and ring bleed
+            const ringOffset = 3, ringWidth = 2, blur = 15, pad = 2;
+            const size = (baseRadius + ringOffset + ringWidth + blur + pad) * 2;
+            const c = createSpriteCanvas(size, size);
+            const g = c.getContext('2d');
+            const cx = size / 2, cy = size / 2;
+
+            // core radial gradient identical to Module.draw()
+            const grad = g.createRadialGradient(cx, cy, 0, cx, cy, baseRadius);
+            grad.addColorStop(0, '#fff');
+            grad.addColorStop(0.3, '#ff0');
+            grad.addColorStop(1, 'rgba(255, 255, 0, 0.2)');
+
+            g.fillStyle = grad;
+            g.shadowBlur = blur;
+            g.shadowColor = '#ff0';
+            g.beginPath();
+            g.arc(cx, cy, baseRadius, 0, Math.PI * 2);
+            g.fill();
+
+            // store metadata for scaling
+            c._baseRadius = baseRadius;
+            return c;
+        }
+        const Sprites = {
+            bullets: {
+                player: makeGlowSprite(8, '#ffffff', '#0ff'),
+                module: makeGlowSprite(4, '#fff8c2', '#ff0'),
+                zombie: makeGlowSprite(6, '#eaffea', '#0f0'),
+                enemy: makeGlowSprite(6, '#ffe6ff', '#f0f')
+            },
+            moduleCore: makeModuleCoreSprite(12),
+            stars: {
+                white: makeStarSprite(2.5, '#ffffff'),
+                blue: makeStarSprite(2.5, 'hsl(210,100%,80%)')
+            }
+        };
+        // ===== end sprite cache =====
+
+        // Math constants cache for performance
+        const TWO_PI = Math.PI * 2;
+        const HALF_PI = Math.PI / 2;
+
+
+        let gameState = {
+            energy: 100,
+            maxEnergy: 100,
+            splits: 3,
+            score: 0,
+            wave: 1,
+            gameOver: false,
+            shieldActive: false,
+            shieldCooldown: 0,
+            pendingWave: false,
+            lowEnergyTriggered: false,
+            combo: 0,
+            maxCombo: 0,
+            comboTimer: 0,
+            supernovaCooldown: 0,
+            zombieUnlocked: false,
+            zombieKillCount: 0,
+            paused: false,
+            zombieUnlockPending: false,
+            rammerKillCount: 0,
+            deathSeq: false
+        };
+
+
+        let nextWaveTimerId = null;
+
+        // Constants imported from shipSystem.js: BASE_MODULES, MAX_MODULES, PLAYER_SHOT_COST, SHIELD_COST, SUPERNOVA_COST, PLAYER_BULLET_SPEED, COMBO_WINDOW, MODULE, ENERGY_DRAIN_SPLIT_PER_SEC
+
+        function clampEnergy() {
+            gameState.energy = Math.max(0, Math.min(gameState.energy, gameState.maxEnergy));
+        }
+        function spendEnergy(cost) {
+            if (gameState.energy < cost) return false;
+            gameState.energy -= cost;
+            clampEnergy();
+            return true;
+        }
+
+        // Split energy drain tracking
+        let splitDrainAccumulator = 0;
+        let lastTs = null;
+
+        // FPS tracking
+        let fpsFrames = [];
+        let currentFPS = 60;
+
+        // MotherShip and Module classes imported from shipSystem.js
+
+        class Projectile {
+            constructor(x, y, vx, vy, type = 'player', damageOverride = null) {
+                this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.type = type;
+                this.radius = type === 'player' ? 8 : 4;
+                this.damage = (damageOverride != null) ? damageOverride : (type === 'player' ? 25 : (type === 'zombie' ? 10 : 10));
+                this.trail = [];
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > 10) this.trail.shift();
+                if (this.type === 'enemy' && gameState.shieldActive) {
+                    const dx = ship.x - this.x, dy = ship.y - this.y, dist = Math.hypot(dx, dy);
+                    if (dist < 150) {
+                        const force = 0.5 / (dist / 100);
+                        this.vx += dx / dist * force; this.vy += dy / dist * force;
+                    }
+                }
+            }
+            draw() {
+                // pick cached sprite
+                const sprite = (this.type === 'player') ? Sprites.bullets.player
+                    : (this.type === 'module') ? Sprites.bullets.module
+                        : (this.type === 'zombie') ? Sprites.bullets.zombie
+                            : Sprites.bullets.enemy;
+                const sw = sprite.width || sprite.bitmapWidth; // OffscreenCanvas uses width
+                const sh = sprite.height || sprite.bitmapHeight;
+
+                // trail using scaled sprite draws
+                const n = this.trail.length;
+                if (n > 0) {
+                    const inv = 1 / n;
+                    for (let i = 0; i < n; i++) {
+                        const p = this.trail[i];
+                        const a = i * inv * 0.5;
+                        ctx.globalAlpha = a;
+                        const scale = (this.radius * i * inv) / (sw * 0.25);
+                        const w = sw * scale, h = sh * scale;
+                        ctx.drawImage(sprite, p.x - w / 2, p.y - h / 2, w, h);
+                    }
+                    ctx.globalAlpha = 1;
+                }
+
+                // main sprite
+                const sizeScale = (this.radius) / (sw * 0.25);
+                const w = sw * sizeScale, h = sh * sizeScale;
+                ctx.drawImage(sprite, this.x - w / 2, this.y - h / 2, w, h);
+            }
+        }
+
+        // Enemy class imported from gameAI.js
+        // (Original Enemy class code removed - now in gameAI.js module)
+
+        // Export Projectile class for use by gameAI.js
+        window.Projectile = Projectile;
+
+        class Particle {
+            constructor(x, y, isZombie = false) {
+                this.reset(x, y, isZombie);
+            }
+            reset(x, y, isZombie = false) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10;
+                this.life = 30;
+                // Zombie particles: green (100-140 hue), Non-zombie: red-yellow (0-60 hue)
+                this.color = isZombie
+                    ? `hsl(${100 + Math.random() * 40}, 100%, 50%)`
+                    : `hsl(${Math.random() * 60}, 100%, 50%)`;
+            }
+            update() { this.x += this.vx; this.y += this.vy; this.vx *= 0.95; this.vy *= 0.95; this.life--; }
+            draw() { ctx.save(); ctx.globalAlpha = this.life / 30; ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.life / 6, 0, TWO_PI); ctx.fill(); ctx.restore(); }
+        }
+
+        class ComboText {
+            constructor(x, y, text, score) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.score = score;
+                this.life = 60;
+                this.vy = -2;
+            }
+            update() {
+                this.y += this.vy;
+                this.life--;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life / 60;
+                ctx.fillStyle = '#ff0';
+                ctx.strokeStyle = '#f80';
+                ctx.lineWidth = 2;
+                ctx.font = 'bold 24px "Courier New"';
+                ctx.textAlign = 'center';
+                ctx.strokeText(this.text, this.x, this.y);
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.font = 'bold 16px "Courier New"';
+                ctx.fillStyle = '#0ff';
+                ctx.fillText(`+${this.score}`, this.x, this.y + 25);
+                ctx.restore();
+            }
+        }
+
+        class SupernovaEffect {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = 400;
+                this.life = 60;
+                this.particles = [];
+                for (let i = 0; i < 50; i++) {
+                    const angle = Math.random() * TWO_PI;
+                    const speed = 5 + Math.random() * 10;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 30
+                    });
+                }
+            }
+            update() {
+                this.radius += (this.maxRadius - this.radius) * 0.2;
+                this.life--;
+                this.particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+                });
+                this.particles = this.particles.filter(p => p.life > 0);
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life / 60;
+
+                // Shockwave rings
+                for (let i = 0; i < 3; i++) {
+                    const r = this.radius * (1 - i * 0.2);
+                    ctx.strokeStyle = `rgba(255, 255, ${255 - i * 50}, ${0.8 - i * 0.2})`;
+                    ctx.lineWidth = 10 - i * 2;
+                    ctx.shadowBlur = 30;
+                    ctx.shadowColor = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, r, 0, TWO_PI);
+                    ctx.stroke();
+                }
+
+                // Particles
+                this.particles.forEach(p => {
+                    ctx.globalAlpha = p.life / 30;
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, TWO_PI);
+                    ctx.fill();
+                });
+
+                ctx.restore();
+            }
+        }
+
+        class ExploderExplosion {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = 120;
+                this.life = 40;
+                this.particles = [];
+                for (let i = 0; i < 30; i++) {
+                    const angle = Math.random() * TWO_PI;
+                    const speed = 3 + Math.random() * 7;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 25
+                    });
+                }
+            }
+            update() {
+                this.radius += (this.maxRadius - this.radius) * 0.25;
+                this.life--;
+                this.particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+                });
+                this.particles = this.particles.filter(p => p.life > 0);
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life / 40;
+
+                // White explosion rings
+                for (let i = 0; i < 2; i++) {
+                    const r = this.radius * (1 - i * 0.3);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 - i * 0.3})`;
+                    ctx.lineWidth = 8 - i * 2;
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, r, 0, TWO_PI);
+                    ctx.stroke();
+                }
+
+                // Particles
+                this.particles.forEach(p => {
+                    ctx.globalAlpha = p.life / 25;
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 4, 0, TWO_PI);
+                    ctx.fill();
+                });
+
+                ctx.restore();
+            }
+        }
+
+        const ship = new MotherShip(canvas.width / 2, canvas.height / 2);
+        ship.createModules(BASE_MODULES);
+        const projectiles = []; const enemies = []; const particles = []; const powerups = []; const moduleStars = []; const stars = [];
+        const supernovaEffects = [];
+        let spaceDebris = [];
+
+        // Export arrays for shipSystem.js module access
+        window.projectiles = projectiles;
+        window.enemies = enemies;
+
+        // Particle object pool
+        const particlePool = [];
+        const MAX_POOL_SIZE = 300;
+
+        function getParticle(x, y, isZombie = false) {
+            let particle = particlePool.pop();
+            if (!particle) {
+                particle = new Particle(x, y, isZombie);
+            } else {
+                particle.reset(x, y, isZombie);
+            }
+            return particle;
+        }
+
+        function returnParticle(particle) {
+            if (particlePool.length < MAX_POOL_SIZE) {
+                particlePool.push(particle);
+            }
+        }
+
+        for (let i = 0; i < 150; i++) stars.push(new Star(canvas, Sprites));
+        // 創建太空碎片
+        for (let i = 0; i < 12; i++) {
+            spaceDebris.push(new SpaceDebris(canvas, TWO_PI));
+        }
+
+        function spawnWave() {
+            gameState.pendingWave = false;
+            const baseCount = (gameState.wave <= 26)
+                ? 3 + gameState.wave
+                : 3 + 26 + Math.floor((gameState.wave - 26) / 5);
+            const eliteCount = gameState.wave >= 5 ? Math.floor((gameState.wave - 4) / 3) : 0;
+            for (let i = 0; i < baseCount; i++) {
+                const angle = (TWO_PI / baseCount) * i;
+                const x = canvas.width / 2 + Math.cos(angle) * 300;
+                const y = canvas.height / 2 + Math.sin(angle) * 300;
+                const enemy = new Enemy(x, y, 'basic', false, false);
+                if (gameState.wave >= 3) {
+                    enemy.speed *= 1.05;
+                }
+                enemies.push(enemy);
+            }
+            for (let i = 0; i < eliteCount; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() < 0.5 ? -50 : canvas.height + 50;
+                enemies.push(new Enemy(x, y, 'elite', false, false));
+            }
+            // spawn rammer after wave 1
+            if (gameState.wave > 1) {
+                const rx = Math.random() * canvas.width;
+                const ry = Math.random() < 0.5 ? -60 : canvas.height + 60;
+                // 75% chance to spawn stealth rammer if 18+ rammers have been killed
+                const isStealth = gameState.rammerKillCount >= 18 && Math.random() < 0.75;
+                enemies.push(new Enemy(rx, ry, 'rammer', false, isStealth));
+            }
+
+            // spawn exploder only if player has at least 4 modules
+            if (ship.modules.length >= 4) {
+                const exploderCount = Math.floor(gameState.wave / 4) + 1;
+                for (let i = 0; i < exploderCount; i++) {
+                    const ex = Math.random() * canvas.width;
+                    const ey = Math.random() < 0.5 ? -60 : canvas.height + 60;
+                    enemies.push(new Enemy(ex, ey, 'exploder', false, false));
+                }
+            }
+        }
+
+        function handleEnemyDeath(enemy, e) {
+            // Create particles with zombie-specific color
+            for (let i = 0; i < 20; i++) particles.push(getParticle(enemy.x, enemy.y, enemy.isZombie));
+
+            // Don't give rewards for zombie deaths
+            if (!enemy.isZombie) {
+                // Update combo
+                gameState.combo++;
+                gameState.comboTimer = COMBO_WINDOW;
+                if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
+
+                // Track rammer kills
+                if (enemy.type === 'rammer') {
+                    gameState.rammerKillCount++;
+                }
+
+                // Calculate score with combo multiplier
+                let baseScore = 0;
+                if (enemy.type === 'basic') baseScore = 100;
+                else if (enemy.type === 'elite') baseScore = 250;
+                else if (enemy.type === 'rammer') baseScore = 200;
+                else if (enemy.type === 'exploder') baseScore = 300;
+
+                const comboBonus = Math.floor(baseScore * (gameState.combo - 1) * 0.1);
+                const totalScore = baseScore + comboBonus;
+                gameState.score += totalScore;
+
+                // Drop powerups
+                if (Math.random() < 0.25) powerups.push(new PowerUp(enemy.x, enemy.y));
+                if (enemy.type === 'elite' && Math.random() < 0.3) moduleStars.push(new ModuleStar(enemy.x, enemy.y));
+
+                // Zombie mode unlock is now triggered upon entering Wave 10 (handled in gameLoop when advancing waves).
+
+                // Convert to zombie if zombie mode unlocked
+                if (gameState.zombieUnlocked && Math.random() < 0.5) {
+                    const zombie = new Enemy(enemy.x, enemy.y, enemy.type, true, enemy.isStealth, enemy.splitLevel);
+                    enemies.push(zombie);
+                }
+            }
+
+            // Remove enemy
+            enemies.splice(e, 1);
+        }
+
+        function checkCollisions() {
+            // Try WASM collision detection first
+            if (typeof window.checkCollisionsWasm === 'function' && typeof window.wasmReady === 'function' && window.wasmReady()) {
+                const result = window.checkCollisionsWasm(projectiles, enemies, ship, ship.modules, powerups, moduleStars, gameState);
+
+                if (result) {
+                    // Process WASM results
+                    // Remove hit projectiles (in reverse to maintain indices)
+                    const projectileHits = Array.from(result.projectile_hits).sort((a, b) => b - a);
+                    for (const idx of projectileHits) {
+                        if (idx < projectiles.length) projectiles.splice(idx, 1);
+                    }
+
+                    // Apply enemy damage
+                    const enemyHitsMap = new Map();
+                    const enemyHits = result.enemy_hits; // Flat array [idx, dmg, idx, dmg, ...]
+                    for (let i = 0; i < enemyHits.length; i += 2) {
+                        const enemyIdx = enemyHits[i];
+                        const damage = enemyHits[i + 1];
+                        if (!enemyHitsMap.has(enemyIdx)) {
+                            enemyHitsMap.set(enemyIdx, 0);
+                        }
+                        enemyHitsMap.set(enemyIdx, enemyHitsMap.get(enemyIdx) + damage);
+                    }
+
+
+                    // Apply damage to enemies in reverse order
+                    const sortedEnemyIndices = Array.from(enemyHitsMap.keys()).sort((a, b) => b - a);
+                    for (const enemyIdx of sortedEnemyIndices) {
+                        if (enemyIdx < enemies.length) {
+                            const enemy = enemies[enemyIdx];
+                            const totalDamage = enemyHitsMap.get(enemyIdx);
+                            const killed = enemy.takeDamage(totalDamage);
+                            if (killed) {
+                                handleEnemyDeath(enemy, enemyIdx);
+                            }
+                        }
+                    }
+
+                    // Handle ship hit
+                    if (result.ship_hit && !gameState.shieldActive) {
+                        gameState.energy -= result.ship_damage;
+                        if (window.devMode) window.devMode.logDamage('enemyBullet', result.ship_damage);
+                        clampEnergy();
+                        for (let i = 0; i < 5; i++) particles.push(getParticle(ship.x, ship.y));
+                    }
+
+                    // Remove hit modules (note: WASM returns module hits but doesn't remove them, they absorb bullets)
+                    // Module damage is already handled by removing the projectile
+
+                    // Collect powerups (in reverse to maintain indices)
+                    const powerupCollected = Array.from(result.powerup_collected).sort((a, b) => b - a);
+                    for (const idx of powerupCollected) {
+                        if (idx < powerups.length) {
+                            gameState.energy = Math.min(gameState.energy + 20, gameState.maxEnergy);
+                            powerups.splice(idx, 1);
+                            gameState.score += 50;
+                        }
+                    }
+
+                    // Collect module stars (in reverse to maintain indices)
+                    const modulestarCollected = Array.from(result.modulestar_collected).sort((a, b) => b - a);
+                    for (const idx of modulestarCollected) {
+                        if (idx < moduleStars.length) {
+                            if (ship.modules.length < MAX_MODULES) {
+                                ship.modules.push(new Module(ship.x, ship.y));
+                                const m = ship.modules[ship.modules.length - 1];
+                                if (ship.isSplit) {
+                                    m.autonomous = true;
+                                    const ang = Math.random() * TWO_PI;
+                                    m.x = ship.x + Math.cos(ang) * 60; m.y = ship.y + Math.sin(ang) * 60;
+                                    m.targetX = m.x; m.targetY = m.y;
+                                }
+                            }
+                            moduleStars.splice(idx, 1);
+                            gameState.score += 75;
+                        }
+                    }
+
+                    result.free(); // CRITICAL: Free WASM memory to prevent leaks
+                    return; // WASM collision detection completed successfully
+
+                }
+            }
+
+            // JavaScript fallback implementation
+            for (let p = projectiles.length - 1; p >= 0; p--) {
+                const proj = projectiles[p];
+                if (proj.type === 'player' || proj.type === 'module') {
+                    for (let e = enemies.length - 1; e >= 0; e--) {
+                        const enemy = enemies[e];
+                        const dx = enemy.x - proj.x;
+                        const dy = enemy.y - proj.y;
+                        const distSq = dx * dx + dy * dy;
+                        const radiusSum = enemy.radius + proj.radius;
+                        if (distSq < radiusSum * radiusSum) {
+                            const killed = enemy.takeDamage(proj.damage);
+                            projectiles.splice(p, 1);
+                            if (killed) handleEnemyDeath(enemy, e);
+                            break;
+                        }
+                    }
+                } else if (proj.type === 'zombie') {
+                    // Zombie bullets hit non-zombie enemies
+                    for (let e = enemies.length - 1; e >= 0; e--) {
+                        const enemy = enemies[e];
+                        if (enemy.isZombie) continue;
+                        const dx = enemy.x - proj.x;
+                        const dy = enemy.y - proj.y;
+                        const distSq = dx * dx + dy * dy;
+                        const radiusSum = enemy.radius + proj.radius;
+                        if (distSq < radiusSum * radiusSum) {
+                            const killed = enemy.takeDamage(proj.damage);
+                            projectiles.splice(p, 1);
+                            if (killed) handleEnemyDeath(enemy, e);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for (let p = projectiles.length - 1; p >= 0; p--) {
+                const proj = projectiles[p];
+                if (proj.type !== 'enemy') continue;
+                let removed = false;
+
+                // Enemy bullets can hit ship, modules, or zombies
+                const dx1 = ship.x - proj.x;
+                const dy1 = ship.y - proj.y;
+                const distSqShip = dx1 * dx1 + dy1 * dy1;
+                const radiusSum1 = ship.radius + proj.radius;
+                if (distSqShip < radiusSum1 * radiusSum1) {
+                    if (!gameState.shieldActive) {
+                        gameState.energy -= proj.damage;
+                        if (window.devMode) window.devMode.logDamage('enemyBullet', proj.damage);
+                        clampEnergy();
+                        for (let i = 0; i < 5; i++) particles.push(getParticle(proj.x, proj.y));
+                    }
+                    projectiles.splice(p, 1); removed = true;
+                }
+                if (removed) continue;
+
+                for (let m = 0; m < ship.modules.length; m++) {
+                    const module = ship.modules[m];
+                    const dx2 = module.x - proj.x;
+                    const dy2 = module.y - proj.y;
+                    const distSqModule = dx2 * dx2 + dy2 * dy2;
+                    const radiusSum2 = module.radius + proj.radius;
+                    if (distSqModule < radiusSum2 * radiusSum2) {
+                        projectiles.splice(p, 1);
+                        removed = true;
+                        break;
+                    }
+                }
+                if (removed) continue;
+
+                // Enemy bullets can hit zombies
+                for (let e = enemies.length - 1; e >= 0; e--) {
+                    const enemy = enemies[e];
+                    if (!enemy.isZombie) continue;
+                    const dx3 = enemy.x - proj.x;
+                    const dy3 = enemy.y - proj.y;
+                    const distSq = dx3 * dx3 + dy3 * dy3;
+                    const radiusSum3 = enemy.radius + proj.radius;
+                    if (distSq < radiusSum3 * radiusSum3) {
+                        const killed = enemy.takeDamage(proj.damage);
+                        projectiles.splice(p, 1);
+                        if (killed) enemies.splice(e, 1);
+                        break;
+                    }
+                }
+            }
+
+            // 撿取能量道具
+            for (let i = powerups.length - 1; i >= 0; i--) {
+                const powerup = powerups[i];
+                const dx = ship.x - powerup.x;
+                const dy = ship.y - powerup.y;
+                const distSq = dx * dx + dy * dy;
+                const radiusSum = ship.radius + powerup.radius;
+                if (distSq < radiusSum * radiusSum) {
+                    gameState.energy = Math.min(gameState.energy + 20, gameState.maxEnergy);
+                    powerups.splice(i, 1);
+                    gameState.score += 50;
+                }
+            }
+
+            // 撿取紫色星星：增加一顆模組，最多至 MAX_MODULES
+            for (let i = moduleStars.length - 1; i >= 0; i--) {
+                const star = moduleStars[i];
+                const dx = ship.x - star.x;
+                const dy = ship.y - star.y;
+                const distSq = dx * dx + dy * dy;
+                const radiusSum = ship.radius + star.radius;
+                if (distSq < radiusSum * radiusSum) {
+                    if (ship.modules.length < MAX_MODULES) {
+                        ship.modules.push(new Module(ship.x, ship.y));
+                        const m = ship.modules[ship.modules.length - 1];
+                        if (ship.isSplit) {
+                            m.autonomous = true;
+                            const ang = Math.random() * TWO_PI;
+                            m.x = ship.x + Math.cos(ang) * 60; m.y = ship.y + Math.sin(ang) * 60;
+                            m.targetX = m.x; m.targetY = m.y;
+                        }
+                    }
+                    moduleStars.splice(i, 1);
+                    gameState.score += 75; // small bonus for collecting star
+                }
+            }
+        }
+
+        // —— 修改：gameLoop 接收 rAF 時間戳，計算 dt 並實作分裂耗能 —— //
+        function gameLoop(now) {
+            if (gameState.gameOver || gameState.paused) {
+                if (!gameState.gameOver) {
+                    requestAnimationFrame(gameLoop);
+                }
+                return;
+            }
+
+            if (now === undefined) now = performance.now();
+            if (lastTs === null) lastTs = now;
+            const dt = Math.max(0, now - lastTs);
+            lastTs = now;
+
+            // FPS calculation
+            fpsFrames.push(now);
+            // Keep only frames from the last second
+            while (fpsFrames.length > 0 && now - fpsFrames[0] > 1000) {
+                fpsFrames.shift();
+            }
+            // Calculate FPS (frames in the last second)
+            currentFPS = fpsFrames.length;
+            window.currentFPS = currentFPS; // Export for devMode.js
+
+            // 分裂耗能：每秒扣 1，未分裂時清零累積
+            if (ship.isSplit) {
+                splitDrainAccumulator += dt;
+                const ticks = Math.floor(splitDrainAccumulator / 1000);
+                if (ticks > 0) {
+                    const drainAmount = ticks * ENERGY_DRAIN_SPLIT_PER_SEC;
+                    gameState.energy = Math.max(0, gameState.energy - drainAmount);
+                    if (window.devMode) window.devMode.logDamage('splitDrain', drainAmount);
+                    splitDrainAccumulator -= ticks * 1000;
+                }
+            } else {
+                splitDrainAccumulator = 0;
+            }
+
+            // Low-energy mercy drop: when energy < 5, 75% chance to spawn a powerup once per dip
+            if (gameState.energy < 5 && !gameState.lowEnergyTriggered) {
+                if (Math.random() < 0.75) {
+                    const rx = Math.random() * canvas.width;
+                    const ry = Math.random() * canvas.height;
+                    powerups.push(new PowerUp(rx, ry));
+                }
+                gameState.lowEnergyTriggered = true;
+            }
+            if (gameState.energy >= 5) {
+                gameState.lowEnergyTriggered = false;
+            }
+
+            // Faster decay of old frames to avoid ghosting at high speeds
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ambient light effect
+            const ambientGradient = ctx.createRadialGradient(ship.x, ship.y, 0, ship.x, ship.y, 400);
+            ambientGradient.addColorStop(0, 'rgba(0, 100, 150, 0.03)');
+            ambientGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = ambientGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < stars.length; i++) { stars[i].update(); stars[i].draw(ctx); }
+            spaceDebris.forEach(debris => { debris.update(); debris.draw(ctx); });
+
+            // Rebuild enemy grid (provided by gameAI.js) so modules use up-to-date positions
+            if (typeof window.rebuildEnemyGrid === 'function') window.rebuildEnemyGrid(enemies);
+            ship.update();
+
+            // Update projectiles
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const proj = projectiles[i];
+                proj.update();
+                if (proj.x < -50 || proj.x > canvas.width + 50 || proj.y < -50 || proj.y > canvas.height + 50) {
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            // Update enemies
+            for (let i = 0; i < enemies.length; i++) {
+                enemies[i].update(ship, enemies, projectiles, particles, getParticle, supernovaEffects, ExploderExplosion, gameState, clampEnergy, canvas);
+            }
+            // remove enemies that were killed during update (non-projectile sources may call takeDamage)
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                if (enemies[i].hp <= 0) {
+                    handleEnemyDeath(enemies[i], i);
+                }
+            }
+
+            // Try WASM particle update first
+            if (typeof window.updateParticlesWasm === 'function' && window.particleWasmReady && window.particleWasmReady()) {
+                const updatedParticles = window.updateParticlesWasm(particles);
+                if (updatedParticles !== null) {
+                    // Return dead particles to pool
+                    for (let i = particles.length - 1; i >= updatedParticles.length; i--) {
+                        returnParticle(particles[i]);
+                    }
+                    // Replace array with updated particles
+                    particles.length = 0;
+                    particles.push(...updatedParticles);
+                } else {
+                    // WASM failed, use JS fallback
+                    for (let i = particles.length - 1; i >= 0; i--) {
+                        particles[i].update();
+                        if (particles[i].life <= 0) {
+                            returnParticle(particles[i]);
+                            particles.splice(i, 1);
+                        }
+                    }
+                }
+            } else {
+                // JS fallback when WASM not available
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    if (particles[i].life <= 0) {
+                        returnParticle(particles[i]);
+                        particles.splice(i, 1);
+                    }
+                }
+            }
+
+            // Update supernova effects
+            for (let i = supernovaEffects.length - 1; i >= 0; i--) {
+                supernovaEffects[i].update();
+                if (supernovaEffects[i].life <= 0) {
+                    supernovaEffects.splice(i, 1);
+                }
+            }
+
+            // Combo timer
+            if (gameState.comboTimer > 0) {
+                gameState.comboTimer--;
+                if (gameState.comboTimer === 0) {
+                    gameState.combo = 0;
+                }
+            }
+
+            for (let i = 0; i < powerups.length; i++) powerups[i].update(ship);
+            for (let i = 0; i < moduleStars.length; i++) moduleStars[i].update(ship);
+
+            checkCollisions();
+
+            for (let i = 0; i < powerups.length; i++) powerups[i].draw(ctx);
+            for (let i = 0; i < moduleStars.length; i++) moduleStars[i].draw(ctx);
+            for (let i = 0; i < enemies.length; i++) enemies[i].draw(ctx);
+            for (let i = 0; i < projectiles.length; i++) projectiles[i].draw();
+            for (let i = 0; i < supernovaEffects.length; i++) supernovaEffects[i].draw();
+            for (let i = 0; i < particles.length; i++) particles[i].draw();
+            ship.draw(ctx, gameState, Sprites);
+
+            if (gameState.shieldCooldown > 0) {
+                gameState.shieldCooldown--;
+                if (gameState.shieldCooldown === 0) gameState.shieldActive = false;
+            }
+
+            if (gameState.supernovaCooldown > 0) {
+                gameState.supernovaCooldown--;
+            }
+
+            // Advance wave when all real (non-zombie) enemies are cleared, even if zombies remain
+            const hasRealEnemies = enemies.some(e => e && !e.isZombie);
+            if (!hasRealEnemies && !gameState.pendingWave) {
+                gameState.pendingWave = true;
+                gameState.wave += 1;
+
+                // Trigger zombie mode unlock upon entering Wave 10
+                if (!gameState.zombieUnlocked && !gameState.zombieUnlockPending && gameState.wave === 10) {
+                    gameState.zombieUnlockPending = true;
+                    gameState.paused = true;
+                    document.getElementById('zombieUnlock').style.display = 'block';
+                }
+
+                nextWaveTimerId = setTimeout(() => { spawnWave(); }, 2000);
+            }
+
+            if (gameState.energy <= 0) {
+                if (!gameState.deathSeq && !gameState.gameOver) {
+                    gameState.deathSeq = true; // guard to avoid multi-trigger across frames
+                    const sfx = new Audio('sfx/shipdie.ogg');
+                    sfx.volume = 0.65;
+                    sfx.play().catch(() => { });
+
+                    const kickoff = () => {
+                        const dur = (isFinite(sfx.duration) && sfx.duration > 0) ? sfx.duration : 3; // fallback 3s
+                        const delay = (dur / 4) * 1000;
+                        setTimeout(() => {
+                            // Report death cause in DevMode
+                            if (window.devMode) window.devMode.reportDeathCause(gameState, ship);
+                            gameState.gameOver = true;
+                            document.getElementById('gameOver').style.display = 'block';
+                            document.getElementById('finalScore').textContent = gameState.score;
+                        }, delay);
+                    };
+
+                    if (isFinite(sfx.duration) && sfx.duration > 0) kickoff();
+                    else sfx.addEventListener('loadedmetadata', kickoff, { once: true });
+                }
+            }
+
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            const energyEl = document.getElementById('energy');
+            energyEl.textContent = Math.max(0, gameState.energy);
+            energyEl.style.color = gameState.energy < 30 ? '#f00' : '#0ff';
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('wave').textContent = gameState.wave;
+
+            const comboEl = document.getElementById('combo');
+            comboEl.textContent = gameState.combo;
+            if (gameState.combo >= 10) {
+                comboEl.style.color = '#ff0';
+                comboEl.style.fontSize = '24px';
+            } else if (gameState.combo >= 5) {
+                comboEl.style.color = '#f80';
+                comboEl.style.fontSize = '22px';
+            } else {
+                comboEl.style.color = '#0ff';
+                comboEl.style.fontSize = '18px';
+            }
+
+            document.getElementById('maxCombo').textContent = gameState.maxCombo;
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            ship.targetX = e.clientX; ship.targetY = e.clientY;
+        });
+
+        let playerShotCount = 0;
+        canvas.addEventListener('click', (e) => {
+            const angle = Math.atan2(e.clientY - ship.y, e.clientX - ship.x);
+            projectiles.push(new Projectile(ship.x, ship.y, Math.cos(angle) * PLAYER_BULLET_SPEED, Math.sin(angle) * PLAYER_BULLET_SPEED, 'player'));
+            playerShotCount++;
+            if (playerShotCount >= 10) {
+                gameState.energy = Math.max(0, gameState.energy - 1);
+                if (window.devMode) window.devMode.logDamage('playerShot', 1);
+                playerShotCount = 0;
+            }
+        });
+
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (gameState.splits > 0 || ship.isSplit) ship.split(gameState);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            // Handle zombie unlock screen
+            if (gameState.zombieUnlockPending) {
+                gameState.zombieUnlockPending = false;
+                gameState.zombieUnlocked = true;
+                gameState.paused = false;
+                document.getElementById('zombieUnlock').style.display = 'none';
+                lastTs = null; // Reset time to prevent dt jump
+                return;
+            }
+
+            if (e.code === 'Space' && !gameState.shieldActive && gameState.shieldCooldown === 0) {
+                e.preventDefault();
+                if (spendEnergy(SHIELD_COST)) {
+                    if (window.devMode) window.devMode.logDamage('shield', SHIELD_COST);
+                    gameState.shieldActive = true;
+                    gameState.shieldCooldown = 180;
+                    for (let i = 0; i < projectiles.length; i++) {
+                        const proj = projectiles[i];
+                        if (proj.type !== 'enemy') continue;
+                        const dx = proj.x - ship.x, dy = proj.y - ship.y, dist = Math.hypot(dx, dy);
+                        if (dist < 150) {
+                            proj.vx = (dx / dist) * PLAYER_BULLET_SPEED;
+                            proj.vy = (dy / dist) * PLAYER_BULLET_SPEED;
+                            proj.type = 'player';
+                        }
+                    }
+                }
+            }
+
+            // Supernova ability (Q key)
+            if (e.code === 'KeyQ' && gameState.supernovaCooldown === 0) {
+                if (spendEnergy(SUPERNOVA_COST)) {
+                    if (window.devMode) window.devMode.logDamage('supernova', SUPERNOVA_COST);
+                    gameState.supernovaCooldown = 300;
+                    supernovaEffects.push(new SupernovaEffect(ship.x, ship.y));
+
+                    // Damage all enemies in range
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        const enemy = enemies[i];
+                        const dist = Math.hypot(enemy.x - ship.x, enemy.y - ship.y);
+                        if (dist < 400) {
+                            const damage = Math.floor(100 * (1 - dist / 400));
+                            const killed = enemy.takeDamage(damage);
+                            if (killed) {
+                                enemies.splice(i, 1);
+                            }
+                        }
+                    }
+
+                    // Push away all projectiles
+                    for (let i = 0; i < projectiles.length; i++) {
+                        const proj = projectiles[i];
+                        if (proj.type === 'enemy') {
+                            const dx = proj.x - ship.x, dy = proj.y - ship.y;
+                            const dist = Math.hypot(dx, dy);
+                            if (dist < 400 && dist > 0) {
+                                const force = 20 * (1 - dist / 400);
+                                proj.vx = (dx / dist) * force;
+                                proj.vy = (dy / dist) * force;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (e.code === 'KeyR' && gameState.gameOver) {
+                // 重置耗能計時狀態，避免重開後立刻扣能
+                splitDrainAccumulator = 0;
+                lastTs = null;
+                spaceDebris.length = 0;
+                for (let i = 0; i < 12; i++) {
+                    spaceDebris.push(new SpaceDebris(canvas, TWO_PI));
+                }
+                if (nextWaveTimerId !== null) { clearTimeout(nextWaveTimerId); nextWaveTimerId = null; }
+
+                // Reset DevMode damage log for new game
+                if (window.devMode) window.devMode.damageLog = window.devMode.resetDamageLog();
+
+                // Manually reset game state properties to preserve object reference for DevMode
+                gameState.energy = 100;
+                gameState.maxEnergy = 100;
+                gameState.splits = 3;
+                gameState.score = 0;
+                gameState.wave = 1;
+                gameState.gameOver = false;
+                gameState.shieldActive = false;
+                gameState.shieldCooldown = 0;
+                gameState.pendingWave = false;
+                gameState.lowEnergyTriggered = false;
+                gameState.combo = 0;
+                gameState.maxCombo = 0;
+                gameState.comboTimer = 0;
+                gameState.supernovaCooldown = 0;
+                gameState.zombieUnlocked = false;
+                gameState.zombieKillCount = 0;
+                gameState.paused = false;
+                gameState.zombieUnlockPending = false;
+                gameState.rammerKillCount = 0;
+                gameState.deathSeq = false;
+
+
+                ship.x = canvas.width / 2; ship.y = canvas.height / 2; ship.targetX = ship.x; ship.targetY = ship.y; ship.isSplit = false; ship.modules = []; ship.createModules(BASE_MODULES);
+                projectiles.length = 0; enemies.length = 0; particles.length = 0; powerups.length = 0; moduleStars.length = 0; supernovaEffects.length = 0;
+                document.getElementById('gameOver').style.display = 'none';
+                spawnWave(); requestAnimationFrame(gameLoop);
+                return;
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        });
+
+        // Initialize Dev Mode system
+        const devMode = new DevMode();
+        window.devMode = devMode; // Export for cross-file access
+        document.addEventListener('keydown', (e) => devMode.handleKeyPress(e));
+        devMode.setupButtons(gameState, ship, enemies, particles, getParticle, MAX_MODULES, Module, spawnWave, TWO_PI);
+
+        // Initialize WASM modules with dynamic import
+        (async function initGame() {
+            try {
+                // 動態導入 WASM 包裝器模塊
+                const wasmWrapper = await import('./collisionWasm.js');
+                const gridWasmWrapper = await import('./gridWasm.js');
+
+                // 初始化碰撞檢測 WASM
+                if (window.initWasm) {
+                    const success = await window.initWasm();
+                    if (success) {
+                        console.log('🚀 遊戲啟動：WASM 碰撞檢測已啟用');
+                    } else {
+                        console.log('⚠️ 遊戲啟動：使用 JavaScript 碰撞檢測');
+                    }
+                }
+
+                // 初始化網格系統 WASM
+                if (window.initGridWasm) {
+                    const success = await window.initGridWasm();
+                    if (success) {
+                        console.log('🚀 遊戲啟動：WASM 網格系統已啟用');
+                    } else {
+                        console.log('⚠️ 遊戲啟動：使用 JavaScript 網格系統');
+                    }
+                }
+
+                // 初始化AI系統 WASM
+                if (window.initAIWasm) {
+                    const success = await window.initAIWasm();
+                    if (success) {
+                        console.log('🚀 遊戲啟動：WASM AI系統已啟用');
+                    } else {
+                        console.log('⚠️ 遊戲啟動：使用 JavaScript AI系統');
+                    }
+                }
+
+                // 初始化粒子系統 WASM
+                if (window.initParticleWasm) {
+                    const success = await window.initParticleWasm();
+                    if (success) {
+                        console.log('🚀 遊戲啟動：WASM 粒子系統已啟用');
+                    } else {
+                        console.log('⚠️ 遊戲啟動：使用 JavaScript 粒子系統');
+                    }
+                }
+            } catch (error) {
+                console.error('⚠️ 無法加載 WASM 模塊:', error);
+                console.log('⚠️ 遊戲啟動：使用 JavaScript 備用方案');
+            } finally {
+                // 無論 WASM 是否成功，都啟動遊戲
+                spawnWave();
+                requestAnimationFrame(gameLoop);
+            }
+        })();
+    </script>
+</body>
+
+</html>
